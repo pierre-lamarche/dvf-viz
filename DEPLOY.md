@@ -67,6 +67,11 @@ l'API `ListObjectsV2` (en `curl`, sans credentials).
 
 Prérequis (une seule fois) :
 1. **Settings → Pages → Build and deployment → Source : `GitHub Actions`**.
+2. Clé API CARTO (fond de carte, gratuite, sans compte) :
+   - Obtenir la clé : <https://carto.com/basemaps/apikey/>
+   - **Settings → Secrets and variables → Actions** → secret `CARTO_KEY` = votre clé.
+   Elle est injectée au build via `VITE_CARTO_KEY` et ajoutée aux tuiles sous la
+   forme `?key=…`. Sans cette clé, le fond de carte CARTO renvoie « API key required ».
 
 Le workflow lit le endpoint/bucket/préfixe et les counts attendus depuis le bloc
 `env:` en tête du workflow (`MINIO_ENDPOINT`, `MINIO_BUCKET`, `EXPECTED_TILES`,
@@ -81,6 +86,13 @@ cd app && npm install && npm run dev
 
 Le dev server Vite sert `../out/tiles` et `../out/tx` automatiquement
 (middleware dans `vite.config.js`), donc pas besoin de MinIO en local.
+
+Pour le fond de carte en local, créez `app/.env.local` (ignoré par git) :
+```
+VITE_CARTO_KEY=votre_cle_carto
+```
+Vite le charge automatiquement en dev ; sans lui le fond de carte peut renvoyer
+« API key required ».
 
 ## Tests
 

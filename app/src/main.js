@@ -9,10 +9,14 @@ const panelTitle = document.getElementById("panel-title");
 const panelMeta = document.getElementById("panel-meta");
 const panelTx = document.getElementById("panel-tx");
 
+// CARTO basemaps require an API key (free, no account: https://carto.com/basemaps/apikey/).
+// Supplied at build time via VITE_CARTO_KEY (a GitHub Actions secret in CI).
+const CARTO_KEY = import.meta.env.VITE_CARTO_KEY || "";
+const CARTO_QS = CARTO_KEY ? `?key=${CARTO_KEY}` : "";
 const CARTO = [
-  "https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  "https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
-  "https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png",
+  `https://a.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_QS}`,
+  `https://b.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_QS}`,
+  `https://c.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png${CARTO_QS}`,
 ];
 
 const map = new maplibregl.Map({

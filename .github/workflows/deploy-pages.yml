@@ -25,6 +25,9 @@ env:
   MINIO_APP_PREFIX: dvf/dvfplus/app
   # Must match the prefix the app is built with (see DEPLOY.md).
   VITE_DATA_BASE: https://minio.lab.sspcloud.fr/pierrelamarche/dvf/dvfplus/app
+  # CARTO basemap API key (free: https://carto.com/basemaps/apikey/), from a
+  # GitHub Actions secret. Baked into the client bundle at build time.
+  VITE_CARTO_KEY: ${{ secrets.CARTO_KEY }}
   # Minimum object counts to consider the data "available" (tunable
   # thresholds). The bucket is public, so the check uses anonymous listing —
   # no S3 credentials are needed. Verified against the 2026-10 build.
@@ -97,7 +100,7 @@ jobs:
         working-directory: app
         run: |
           npm ci
-          VITE_DATA_BASE="$VITE_DATA_BASE" npm run build
+          VITE_DATA_BASE="$VITE_DATA_BASE" VITE_CARTO_KEY="$VITE_CARTO_KEY" npm run build
       - name: Configure Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
