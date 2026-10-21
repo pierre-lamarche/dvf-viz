@@ -1,0 +1,109 @@
+name: Deploy to GitHub Pages
+
+# Builds the static app and deploys it to GitHub Pages, but only if the
+# MVT tiles + tx shards are already present on MinIO (S3). The app fetches
+# data from MinIO at runtime; Pages only hosts the app bundle.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One deployment at a time; never cancel an in-progress run.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+env:
+  MINIO_ENDPOINT: https://minio.lab.sspcloud.fr
+  MINIO_BUCKET: pierrelamarche
+  MINIO_APP_PREFIX: dvf/dvfplus/app
+  # Must match the prefix the app is built with (see DEPLOY.md).
+  VITE_DATA_BASE: https://minio.lab.sspcloud.fr/pierrelamarche/dvf/dvfplus/app
+  # Minimum object counts to consider the data "available" (tunable
+  # thresholds). The bucket is public, so the check uses anonymous listing —
+  # no S3 credentials are needed. Verified against the 2026-10 build.
+  EXPECTED_TX: 97
+  EXPECTED_TILES: 249000
+
+jobs:
+  check-data:
+    name: Verify data on MinIO (public bucket, no credentials)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check tx shards + MVT tiles exist
+        run: |
+          set -euo pipefail
+          BASE="${MINIO_ENDPOINT}/${MINIO_BUCKET}"
+          PFX="${MINIO_APP_PREFIX}"
+
+          # Count objects under a prefix via the public S3 ListObjectsV2 API.
+          # The bucket allows anonymous listing, so no credentials are needed.
+          count_prefix() {
+            local prefix="$1" token="" total=0 resp kc url
+            while true; do
+              url="${BASE}?list-type=2&prefix=${prefix}&max-keys=1000"
+              if [ -n "${token}" ]; then url="${url}&continuation-token=${token}"; fi
+              if ! resp=$(curl -fsS --retry 5 --retry-delay 1 --max-time 60 "${url}"); then
+                echo "::error::MinIO ListObjectsV2 failed for prefix '${prefix}'"
+                return 1
+              fi
+              kc=$(grep -oP '(?<=<KeyCount>)[0-9]+(?=</KeyCount>)' <<<"${resp}" | head -1 || true)
+              total=$(( total + ${kc:-0} ))
+              token=$(grep -oP '(?<=<NextContinuationToken>).*?(?=</NextContinuationToken>)' <<<"${resp}" | head -1 || true)
+              if [ -z "${token}" ]; then break; fi
+            done
+            echo "${total}"
+          }
+
+          echo ">> tx shards (need >= ${EXPECTED_TX})"
+          tx=$(count_prefix "${PFX}/tx/") || exit 1
+          echo "   found: ${tx}"
+          if [ "${tx}" -lt "${EXPECTED_TX}" ]; then
+            echo "::error::Only ${tx}/${EXPECTED_TX} tx shards on MinIO — aborting deploy."
+            exit 1
+          fi
+
+          echo ">> MVT tiles (need >= ${EXPECTED_TILES}) — paginated listing (~1-2 min)"
+          tiles=$(count_prefix "${PFX}/tiles/") || exit 1
+          echo "   found: ${tiles}"
+          if [ "${tiles}" -lt "${EXPECTED_TILES}" ]; then
+            echo "::error::Only ${tiles}/${EXPECTED_TILES} MVT tiles on MinIO — aborting deploy."
+            exit 1
+          fi
+
+          echo "::notice::Data OK on MinIO: ${tiles} tiles, ${tx} tx shards."
+
+  build-deploy:
+    name: Build & deploy to GitHub Pages
+    needs: check-data
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Build (vendors DuckDB-WASM via prebuild)
+        working-directory: app
+        run: |
+          npm ci
+          VITE_DATA_BASE="$VITE_DATA_BASE" npm run build
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: app/dist
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v5

@@ -55,6 +55,24 @@ est configuré → les assets sont en chemin relatif, ça marche dans un sous-ch
 rsync -az --delete app/dist/ user@host:/var/www/dvf-viz/
 ```
 
+## 3bis. Déploiement automatique via GitHub Actions
+
+`.github/workflows/deploy-pages.yml` déploie sur **GitHub Pages** à chaque push
+sur `main` (ou à la main via *Actions → Run workflow*). Avant de builder, un job
+vérifie que les données sont bien sur MinIO ; sinon le deploy est annulé.
+
+Le bucket MinIO étant **public** (lecture anonyme autorisée), **aucun identifiant
+S3 n'est nécessaire** : le job de vérification compte simplement les objets via
+l'API `ListObjectsV2` (en `curl`, sans credentials).
+
+Prérequis (une seule fois) :
+1. **Settings → Pages → Build and deployment → Source : `GitHub Actions`**.
+
+Le workflow lit le endpoint/bucket/préfixe et les counts attendus depuis le bloc
+`env:` en tête du workflow (`MINIO_ENDPOINT`, `MINIO_BUCKET`, `EXPECTED_TILES`,
+`EXPECTED_TX`) — à mettre à jour si la base de données change. La vérification
+compte les tuiles par pagination (~1-2 min).
+
 ## Démo locale (sans MinIO)
 
 ```bash
