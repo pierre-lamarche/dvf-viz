@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DVF+ · Parcelles ayant connu une mutation foncière</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <div id="header">
+      <h1>Parcelles &amp; mutations foncières</h1>
+      <p>Cliquez sur une parcelle pour voir ses mutations (DVF+).</p>
+    </div>
+
+    <div id="status">initialisation…</div>
+
+    <div id="panel" class="hidden">
+      <div id="panel-top">
+        <h2 id="panel-title">Parcelle</h2>
+        <button id="panel-close" title="Fermer">×</button>
+      </div>
+      <div id="panel-meta"></div>
+      <div id="panel-tx"></div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>

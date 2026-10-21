@@ -1,0 +1,23 @@
+# --- Build output (large generated data) ---
+# 249k MVT tiles (4.3 GB) + 97 tx shards (808 MB)
+out/
+*.mbtiles
+*.geojson
+
+# --- Node / frontend ---
+node_modules/
+app/dist/
+# Vendored DuckDB-WASM (41 MB) — copied from node_modules by `predev`/`prebuild`
+app/public/duckdb/
+
+# --- Python ---
+__pycache__/
+*.pyc
+*.pyo
+
+# --- Logs & OS / editor ---
+*.log
+.DS_Store
+Thumbs.db
+*.swp
+*~
