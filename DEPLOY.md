@@ -8,8 +8,8 @@ données (MVT + shards parquet) depuis **MinIO** et embarque le moteur DuckDB-WA
 
 | Répertoire          | Contenu                              | Taille   | Usage            |
 |---------------------|--------------------------------------|----------|------------------|
-| `out/tiles/`        | 249 927 tuiles MVT `{z}/{x}/{y}.mvt` | 4.3 Go   | → MinIO          |
-| `out/tx/`           | 97 shards `dept-NN.parquet`          | 808 Mo   | → MinIO          |
+| `out/tiles/`        | 250 014 tuiles MVT `{z}/{x}/{y}.mvt` | 3.5 Go   | → MinIO          |
+| `out/tx/`           | 97 shards `dept-NN.parquet`          | 547 Mo   | → MinIO          |
 | `app/dist/`         | app statique (build)                 | 42 Mo    | → hébergement web|
 
 ## 1. Uploader les données sur MinIO
@@ -103,8 +103,13 @@ Vite le charge automatiquement en dev ; sans lui le fond de carte peut renvoyer
 ## Notes techniques
 
 - Tuiles MVT **brutes** (déjà dé-gzippées) — MapLibre les consomme telles quelles.
-- Les shards `dept-NN.parquet` : 1 ligne par parcelle × mutation, colonnes
+- Les shards `dept-NN.parquet` : 1 ligne par mutation (`idpar` = `l_idpar[1]`), colonnes
   `idpar, idmutation, datemut, annee, prix, type, surface, ids`.
+- **Construction des tuiles** : `tippecanoe --name=parcels --layer=parcels --minimum-zoom=0
+  --maximum-zoom=14 --drop-densest-as-needed out/parcels/*.geojson -o all.mbtiles`, puis
+  `python3 build/unpack_mbtiles.py all.mbtiles out/tiles`. Le `--layer=parcels` est obligatoire
+  (sinon une couche par fichier), et `--drop-densest-as-needed` aussi (sinon tippecanoe s'arrête
+  à z8 sur les départements denses). Les appartements passent par `l_idpar`, pas `l_idparmut`.
 - `idpar` = identifiant cadastre (alnum) ; la recherche dans DuckDB-WASM utilise
   l'id inline (validé alnum) car le binding de paramètres préparés est cassé
   dans le build `1.33.1-dev57.0` de DuckDB-WASM.

@@ -89,12 +89,19 @@ dvf-viz/
 1. **Source** : DVF+ en Parquet sur MinIO, partitionné par département, géométrie en EPSG:2154.
 2. `build/extract.py` (DuckDB) : pour chaque département, télécharge le Parquet une fois et produit
    - `out/parcels/dept-NN.geojson` — polygones des parcelles (simplifiés, EPSG:4326),
-   - `out/tx/dept-NN.parquet` — shard des mutations (une ligne par parcelle × mutation, sans géométrie).
+    - `out/tx/dept-NN.parquet` — shard des mutations (une ligne par mutation, `idpar` = `l_idpar[1]`, sans géométrie).
 3. `build/run_all.sh` : exécute `extract.py` en parallèle sur les **97 départements**.
-4. **tippecanoe** : `out/parcels/*.geojson` → `mbtiles` (z0–z14).
+4. **tippecanoe** : `out/parcels/*.geojson` → `mbtiles` (z0–z14), avec
+   `--name=parcels --layer=parcels --drop-densest-as-needed` (une seule couche `parcels` ;
+   `--drop-densest-as-needed` est **requis** pour que les tuiles denses comme Paris passent à
+   z9+ — le zoom 14, max de l'app, garde toutes les parcelles).
 5. `build/unpack_mbtiles.py` : `mbtiles` → `out/tiles/{z}/{x}/{y}.mvt` (MVT brut, non gzippé).
 
-Résultat : **249 927 tuiles MVT** (≈ 4,3 Go) + **97 shards** `dept-NN.parquet` (≈ 800 Mo),
+> Les **appartements** sont inclus : la parcelle affichée est `l_idpar[1]` (la parcelle du bien),
+> pas `l_idparmut` (les parcelles modifiées par la mutation — vides pour ~99,9 % des ventes
+> d'appartements, ce qui les faisait disparaître de la carte).
+
+Résultat : **250 014 tuiles MVT** (≈ 3,5 Go) + **97 shards** `dept-NN.parquet` (≈ 547 Mo),
 ensuite uploadés sur MinIO (voir `DEPLOY.md`).
 
 ## Déploiement

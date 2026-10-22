@@ -36,14 +36,14 @@ def extract(con, dept):
     # download once, materialize the columns we need
     con.execute(
         "DROP TABLE IF EXISTS t; CREATE TEMP TABLE t AS SELECT "
-        "idmutation, l_idparmut, coddep, {yc}, valeurfonc, codtypbien, "
+        "idmutation, l_idpar, coddep, {yc}, valeurfonc, codtypbien, "
         "libtypbien, sterr, datemut, geompar "
         "FROM read_parquet('{u}') "
-        "WHERE geompar IS NOT NULL AND l_idparmut IS NOT NULL AND len(l_idparmut) > 0{lim}".format(
+        "WHERE geompar IS NOT NULL AND l_idpar IS NOT NULL AND len(l_idpar) > 0{lim}".format(
             yc=YEAR, u=url, lim=lim)
     )
     # ---- parcel geojson (simplified in 2154, reprojected to 4326) ----
-    q = ("SELECT l_idparmut[1] AS idpar, coddep, {yc} AS annee, "
+    q = ("SELECT l_idpar[1] AS idpar, coddep, {yc} AS annee, "
          "round(valeurfonc) AS prix, codtypbien AS typ, "
          "ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(geompar, {tol}), "
          "'EPSG:2154','EPSG:4326')) AS g FROM t").format(yc=YEAR, tol=SIMPLIFY_TOL)
@@ -68,9 +68,9 @@ def extract(con, dept):
     # ---- transaction shard (no geometry) ----
     out_tx = os.path.join(os.environ.get("TX_DIR", "out/tx"), f"dept-{dept}.parquet")
     con.execute(
-        "COPY (SELECT idpar, idmutation, datemut, {yc} AS annee, "
+        "COPY (SELECT l_idpar[1] AS idpar, idmutation, datemut, {yc} AS annee, "
         "round(valeurfonc) AS prix, libtypbien AS type, sterr AS surface, "
-        "l_idparmut AS ids FROM t, UNNEST(l_idparmut) AS u(idpar)) "
+        "l_idpar AS ids FROM t) "
         "TO '{o}' (FORMAT parquet)".format(yc=YEAR, o=out_tx)
     )
     print(f"[{dept}] done: {len(feats)} feats (geo {os.path.getsize(out_geo)/1e6:.0f} MB), "
