@@ -5,7 +5,7 @@ Carte interactive des **parcelles françaises ayant connu au moins une mutation 
 publié par l'État français.
 
 Cliquez sur une parcelle : elle se surligne et un panneau affiche l'historique de ses mutations
-(date, prix, type de bien, surface).
+(date, prix, type de bien, surface — bâtie pour les biens construits, terrain pour les terrains).
 
 🌐 **Site en ligne** : <https://pierre-lamarche.github.io/dvf-viz/>
 

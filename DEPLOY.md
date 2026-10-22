@@ -105,6 +105,10 @@ Vite le charge automatiquement en dev ; sans lui le fond de carte peut renvoyer
 - Tuiles MVT **brutes** (déjà dé-gzippées) — MapLibre les consomme telles quelles.
 - Les shards `dept-NN.parquet` : 1 ligne par mutation (`idpar` = `l_idpar[1]`), colonnes
   `idpar, idmutation, datemut, annee, prix, type, surface, ids`.
+- `surface` : selon le type de bien (`codtypbien`) — **bâtie** (`sbati`) pour appartements
+  (12x), maisons (11x), activités (14) et bâti mixte (15x) ; **terrain** (`sterr`) pour les
+  terrains (2x) ; `NULL` (→ « — ») pour dépendances (13x) et bâti indéterminé (10x).
+  Ex. médians : appartement 43 m², maison 120 m², activité 70 m², terrain 226–4 453 m².
 - **Construction des tuiles** : `tippecanoe --name=parcels --layer=parcels --minimum-zoom=0
   --maximum-zoom=14 --drop-densest-as-needed out/parcels/*.geojson -o all.mbtiles`, puis
   `python3 build/unpack_mbtiles.py all.mbtiles out/tiles`. Le `--layer=parcels` est obligatoire

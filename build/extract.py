@@ -37,7 +37,7 @@ def extract(con, dept):
     con.execute(
         "DROP TABLE IF EXISTS t; CREATE TEMP TABLE t AS SELECT "
         "idmutation, l_idpar, coddep, {yc}, valeurfonc, codtypbien, "
-        "libtypbien, sterr, datemut, geompar "
+        "libtypbien, sterr, sbati, datemut, geompar "
         "FROM read_parquet('{u}') "
         "WHERE geompar IS NOT NULL AND l_idpar IS NOT NULL AND len(l_idpar) > 0{lim}".format(
             yc=YEAR, u=url, lim=lim)
@@ -69,7 +69,10 @@ def extract(con, dept):
     out_tx = os.path.join(os.environ.get("TX_DIR", "out/tx"), f"dept-{dept}.parquet")
     con.execute(
         "COPY (SELECT l_idpar[1] AS idpar, idmutation, datemut, {yc} AS annee, "
-        "round(valeurfonc) AS prix, libtypbien AS type, sterr AS surface, "
+        "round(valeurfonc) AS prix, libtypbien AS type, "
+        "CASE WHEN codtypbien LIKE '12%' THEN sbati "
+        "WHEN codtypbien LIKE '11%' OR codtypbien LIKE '14%' OR codtypbien LIKE '15%' THEN sbati "
+        "WHEN codtypbien LIKE '2%' THEN sterr ELSE NULL END AS surface, "
         "l_idpar AS ids FROM t) "
         "TO '{o}' (FORMAT parquet)".format(yc=YEAR, o=out_tx)
     )
