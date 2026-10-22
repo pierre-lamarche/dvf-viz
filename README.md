@@ -2,7 +2,7 @@
 
 Carte interactive des **parcelles françaises ayant connu au moins une mutation foncière**
 (ventes immobilières), d'après le jeu de données **DVF+** (*Droits des Valeurs Foncières plus*)
-publié par l'État français.
+publié par le Céréma.
 
 Cliquez sur une parcelle : elle se surligne et un panneau affiche l'historique de ses mutations
 (date, prix, type de bien, surface — bâtie pour les biens construits, terrain pour les terrains).
