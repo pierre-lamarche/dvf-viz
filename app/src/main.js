@@ -94,6 +94,8 @@ map.on("load", async () => {
     tr.classList.add("active");
     selectByMid(Number(tr.dataset.mid), tr.dataset.pid || currentIdpar, true);
   });
+
+  initSearch();
 });
 
 let busy = false;
@@ -201,4 +203,70 @@ function escapeHtml(s) {
   return s.replace(/[&<>"']/g, (c) =>
     ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]),
   );
+}
+
+// ── Address search (geocoding) ─────────────────────────────────────────
+let searchMarker = null;
+
+function initSearch() {
+  const input = document.getElementById("search");
+  const results = document.getElementById("search-results");
+  let timer = null;
+
+  function close() { results.classList.add("hidden"); }
+
+  function show(items) {
+    if (!items.length) {
+      results.innerHTML = '<div class="item muted">Aucun résultat</div>';
+    } else {
+      results.innerHTML = items.map((r, i) =>
+        `<div class="item" data-i="${i}"><span class="label">${escapeHtml(r.properties.label)}</span><span class="score">${r.properties.score.toFixed(2)}</span></div>`
+      ).join("");
+    }
+    results.classList.remove("hidden");
+  }
+
+  async function doSearch(q) {
+    if (q.length < 3) { close(); return; }
+    try {
+      const res = await fetch(`https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&limit=5`);
+      const data = await res.json();
+      show(data.features || []);
+      results._items = data.features || [];
+    } catch {
+      results.innerHTML = '<div class="item muted">Erreur</div>';
+      results.classList.remove("hidden");
+    }
+  }
+
+  function selectItem(feature) {
+    const [lon, lat] = feature.geometry.coordinates;
+    close();
+    input.value = feature.properties.label;
+    if (searchMarker) searchMarker.remove();
+    searchMarker = new maplibregl.Marker({ color: "#e74c3c" })
+      .setLngLat([lon, lat])
+      .setPopup(new maplibregl.Popup({ offset: 8 }).setText(feature.properties.label))
+      .addTo(map);
+    map.flyTo({ center: [lon, lat], zoom: 16, duration: 1500 });
+  }
+
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(() => doSearch(input.value.trim()), 400);
+  });
+
+  input.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && results._items?.length) selectItem(results._items[0]);
+    if (e.key === "Escape") { close(); input.blur(); }
+  });
+
+  results.addEventListener("click", (e) => {
+    const item = e.target.closest(".item[data-i]");
+    if (item && results._items) selectItem(results._items[Number(item.dataset.i)]);
+  });
+
+  document.addEventListener("click", (e) => {
+    if (!e.target.closest("#search") && !e.target.closest("#search-results")) close();
+  });
 }

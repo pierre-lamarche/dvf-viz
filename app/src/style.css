@@ -9,6 +9,25 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 }
 #header h1 { margin: 0; font-size: 15px; }
 #header p { margin: 4px 0 0; font-size: 12px; color: #555; }
+#search {
+  width: 100%; margin-top: 8px; padding: 6px 10px;
+  border: 1px solid #ddd; border-radius: 6px; font-size: 13px;
+  outline: none;
+}
+#search:focus { border-color: #4a90d9; box-shadow: 0 0 0 2px rgba(74,144,217,0.15); }
+#search-results {
+  position: absolute; top: 100%; left: 0; right: 0; z-index: 10;
+  background: #fff; border-radius: 0 0 8px 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  max-height: 200px; overflow-y: auto;
+}
+#search-results .item {
+  padding: 8px 12px; font-size: 12px; cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center; gap: 8px;
+}
+#search-results .item:hover { background: #f0f4ff; }
+#search-results .item .label { flex: 1; }
+#search-results .item .score { color: #999; font-size: 11px; }
 
 #status {
   position: absolute; bottom: 10px; left: 10px; z-index: 2;
