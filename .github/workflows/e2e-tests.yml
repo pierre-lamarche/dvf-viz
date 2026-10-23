@@ -1,0 +1,36 @@
+name: E2E Tests
+
+on:
+  workflow_run:
+    workflows: ["Deploy to GitHub Pages"]
+    types: [completed]
+  workflow_dispatch:
+
+concurrency:
+  group: e2e
+  cancel-in-progress: false
+
+jobs:
+  e2e:
+    name: Playwright E2E (production)
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+      - name: Install Playwright browsers
+        run: npx --prefix app playwright install --with-deps chromium
+      - name: Run E2E tests against production
+        working-directory: app
+        env:
+          E2E_URL: https://pierre-lamarche.github.io/dvf-viz/
+        run: node tests/e2e.cjs

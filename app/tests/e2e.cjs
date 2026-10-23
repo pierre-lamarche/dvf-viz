@@ -323,6 +323,67 @@ async function main() {
     fail("union mutations", e.message);
   }
 
+  // ── 8. Métadonnées du panneau ───────────────────────────────────────
+  section("8. Métadonnées du panneau (département, prix)");
+  try {
+    const meta = await page.evaluate(() => {
+      const el = document.getElementById("panel-meta");
+      const dep = el.innerHTML.match(/Department : <b>(\d+)<\/b>/);
+      const prix = el.innerHTML.match(/Prix \(dernier\) : <b>([\d\s]+) €<\/b>/);
+      return { dep: dep ? dep[1] : null, prix: prix ? prix[1].replace(/\s/g, "") : null };
+    });
+    if (meta.dep && meta.prix)
+      ok(`département=${meta.dep}, prix=${meta.prix} €`);
+    else
+      fail("panel metadata", `missing fields: dep=${meta.dep}, prix=${meta.prix}`);
+  } catch (e) {
+    fail("panel metadata", e.message);
+  }
+
+  // ── 9. Fermeture du panneau ─────────────────────────────────────────
+  section("9. Fermeture du panneau");
+  try {
+    await page.click("#panel-close");
+    await page.waitForFunction(
+      () => document.getElementById("panel").classList.contains("hidden"),
+      { timeout: 5000 },
+    );
+    const filter = await page.evaluate(() => window.__map.getFilter("parcels-selected"));
+    const isClear = !filter || filter[2] === "" || filter[2] === null;
+    if (isClear) ok("panneau fermé, filtre réinitialisé");
+    else fail("clear selection", `filter not cleared: ${JSON.stringify(filter)}`);
+  } catch (e) {
+    fail("clear selection", e.message);
+  }
+
+  // ── 10. Autre département (Lyon 69) ────────────────────────────────
+  section("10. Autre département (Lyon 69, z16)");
+  try {
+    const lyon = [4.891057, 45.763445];
+    await page.evaluate((c) => window.__map.jumpTo({ center: c, zoom: 16 }), lyon);
+    await waitParcels(page, 5);
+
+    const pt = await page.evaluate((c) => {
+      const p = window.__map.project(c);
+      return { x: p.x, y: p.y };
+    }, lyon);
+    await page.mouse.click(pt.x, pt.y);
+    await waitForPanel(page);
+
+    const title = await page.evaluate(() => document.getElementById("panel-title").textContent);
+    const rows = await page.evaluate(() => document.querySelectorAll("#panel-tx tr[data-mid]").length);
+    const dep = await page.evaluate(() => {
+      const m = document.getElementById("panel-meta").innerHTML.match(/Department : <b>(\d+)<\/b>/);
+      return m ? m[1] : null;
+    });
+    if (dep === "69" && rows > 0)
+      ok(`${title}: ${rows} mutations (dépt 69)`);
+    else
+      fail("other dept", `dep=${dep}, rows=${rows} (expected dept 69 with mutations)`);
+  } catch (e) {
+    fail("other dept", e.message);
+  }
+
   // ── Errors ─────────────────────────────────────────────────────────
   section("Erreurs page");
   const real = errors.filter(e => !/404|Failed to load resource|ERR_ABORTED|basemaps\.cartocdn/i.test(e));

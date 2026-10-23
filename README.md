@@ -1,5 +1,7 @@
 # DVF+ · Parcelles & mutations foncières
 
+[![E2E Tests](https://github.com/pierre-lamarche/dvf-viz/actions/workflows/E2E%20Tests/badge.svg)](https://github.com/pierre-lamarche/dvf-viz/actions/workflows/E2E%20Tests)
+
 Carte interactive des **parcelles françaises ayant connu au moins une mutation foncière**
 (ventes immobilières), d'après le jeu de données **DVF+** (*Demandes des Valeurs Foncières plus*)
 publié par le Céréma.
@@ -17,6 +19,19 @@ Cliquez sur une parcelle : elle se surligne et un panneau affiche l'historique d
   aucune base de données serveur.
 - **Données** servies depuis un bucket **MinIO/S3 public** (tuiles MVT + shards Parquet).
 - **Site statique** : l'app est déployable sur n'importe quel hébergement / CDN.
+
+## Tests E2E
+
+```bash
+cd app
+npm install
+npx playwright install chromium   # une seule fois
+npm run dev                       # terminal 1
+npm run test:e2e                  # terminal 2
+```
+
+Le CI (`.github/workflows/e2e-tests.yml`) relance la suite automatiquement après chaque
+déploiement sur GitHub Pages, contre l'URL de production.
 
 ## Stack
 
@@ -72,6 +87,7 @@ dvf-viz/
 │   │   └── style.css
 │   ├── index.html
 │   ├── scripts/copy-duckdb.mjs   # copie le wasm dans public/duckdb (avant dev/build)
+│   ├── tests/e2e.cjs             # tests E2E Playwright (9 cas)
 │   └── vite.config.js      # base "./" + middleware de dev servant ../out
 ├── build/                  # pipeline de génération des données
 │   ├── extract.py          # parquet DVF+ → GeoJSON (parcelles) + shard Parquet (mutations)
