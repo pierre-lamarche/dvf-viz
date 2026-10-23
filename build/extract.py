@@ -65,6 +65,14 @@ def extract(con, dept):
             },
             "geometry": json.loads(g),
         })
+    # ---- dedup: keep only smallest-area feature per idpar (handles splits) ----
+    best = {}
+    for f in feats:
+        pid = f["properties"]["idpar"]
+        area = f["properties"]["area"] or float("inf")
+        if pid not in best or area < (best[pid]["properties"]["area"] or float("inf")):
+            best[pid] = f
+    feats = list(best.values())
     out_geo = os.path.join(os.environ.get("PARCELS_DIR", "out/parcels"), f"dept-{dept}.geojson")
     with open(out_geo, "w") as f:
         json.dump({"type": "FeatureCollection", "features": feats}, f, separators=(",", ":"))
