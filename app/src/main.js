@@ -130,12 +130,16 @@ async function onParcelClick(e) {
 function selectByMid(mid, idpar, doZoom) {
   map.setFilter("parcels-selected", ["==", ["get", "mid"], mid]);
   setTimeout(() => {
-    let feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
-    if (!feats.length) {
+    const feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+    if (feats.length) {
+      if (doZoom) fitToFeatures(feats);
+    } else {
       map.setFilter("parcels-selected", ["==", ["get", "idpar"], idpar]);
-      feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+      setTimeout(() => {
+        const fb = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+        if (doZoom && fb.length) fitToFeatures(fb);
+      }, 100);
     }
-    if (doZoom && feats.length) fitToFeatures(feats);
   }, 100);
 }
 
