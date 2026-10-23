@@ -1,6 +1,7 @@
 # DVF+ · Parcelles & mutations foncières
 
 [![E2E Tests](https://github.com/pierre-lamarche/dvf-viz/actions/workflows/e2e-tests.yml/badge.svg)](https://github.com/pierre-lamarche/dvf-viz/actions/workflows/e2e-tests.yml)
+[![codecov](https://codecov.io/gh/pierre-lamarche/dvf-viz/branch/main/graph/badge.svg)](https://codecov.io/gh/pierre-lamarche/dvf-viz)
 
 Carte interactive des **parcelles françaises ayant connu au moins une mutation foncière**
 (ventes immobilières), d'après le jeu de données **DVF+** (*Demandes des Valeurs Foncières plus*)

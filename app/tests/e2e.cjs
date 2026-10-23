@@ -1,4 +1,6 @@
 const { chromium } = require("playwright");
+const fs = require("fs");
+const path = require("path");
 
 const BASE = process.env.E2E_URL || "http://localhost:5173/";
 let passed = 0, failed = 0;
@@ -7,6 +9,62 @@ const failures = [];
 function ok(name) { passed++; console.log(`  \x1b[32m✓\x1b[0m ${name}`); }
 function fail(name, msg) { failed++; failures.push({ name, msg }); console.log(`  \x1b[31m✗\x1b[0m ${name}: ${msg}`); }
 function section(title) { console.log(`\n\x1b[1m${title}\x1b[0m`); }
+
+function writeLcov(cov) {
+  const acorn = require("acorn");
+  const srcDir = path.resolve(__dirname, "../src");
+  const files = fs.readdirSync(srcDir).filter(f => f.endsWith(".js"));
+  const hitSet = new Set(Object.keys(cov));
+  let allFns = 0, hitFns = 0;
+  const records = [];
+
+  for (const file of files) {
+    const code = fs.readFileSync(path.join(srcDir, file), "utf-8");
+    let ast;
+    try { ast = acorn.parse(code, { ecmaVersion: "latest", sourceType: "module", locations: true }); } catch { continue; }
+    const fns = [];
+    collectFns(ast, fns);
+    if (!fns.length) continue;
+
+    const lines = [`SF:src/${file}`];
+    let fileHit = 0;
+    for (const fn of fns) {
+      const key = `${file}:${fn.name}:${fn.line}`;
+      lines.push(`FN:${fn.line},${fn.name}`);
+      const hit = hitSet.has(key) ? 1 : 0;
+      lines.push(`FNDA:${hit},${fn.name}`);
+      if (hit) fileHit++;
+    }
+    lines.push(`FNF:${fns.length}`);
+    lines.push(`FNH:${fileHit}`);
+    lines.push(`LF:${fns.length}`);
+    lines.push(`LH:${fileHit}`);
+    lines.push(`end_of_record`);
+    records.push(lines.join("\n"));
+    allFns += fns.length;
+    hitFns += fileHit;
+  }
+
+  return { content: records.join("\n") + "\n", total: allFns, hit: hitFns };
+}
+
+function collectFns(node, out) {
+  if (!node || typeof node !== "object" || typeof node.type !== "string") return;
+  if (
+    (node.type === "FunctionDeclaration" || node.type === "FunctionExpression" || node.type === "ArrowFunctionExpression") &&
+    node.body && node.body.type === "BlockStatement"
+  ) {
+    const name = node.id && node.id.name ? node.id.name : "anon";
+    const line = node.body.loc ? node.body.loc.start.line : 0;
+    out.push({ name, line });
+  }
+  for (const key of Object.keys(node)) {
+    if (key === "loc" || key === "range" || key === "start" || key === "end" || key === "type") continue;
+    const child = node[key];
+    if (Array.isArray(child)) { for (const c of child) collectFns(c, out); }
+    else if (child && typeof child === "object" && typeof child.type === "string") collectFns(child, out);
+  }
+}
 
 function collectErrors(page) {
   const errors = [];
@@ -389,6 +447,25 @@ async function main() {
   const real = errors.filter(e => !/404|Failed to load resource|ERR_ABORTED|basemaps\.cartocdn/i.test(e));
   if (real.length === 0) ok("aucune erreur");
   else real.forEach(e => fail("page error", e));
+
+  // ── Coverage ─────────────────────────────────────────────────────────
+  section("Coverage");
+  try {
+    const cov = await page.evaluate(() => window.__cov__ || null);
+    if (cov) {
+      const lcov = writeLcov(cov);
+      const { total, hit } = lcov;
+      const pct = total > 0 ? Math.round((hit / total) * 1000) / 10 : 0;
+      const lcovPath = path.resolve(__dirname, "../../coverage/lcov.info");
+      fs.mkdirSync(path.dirname(lcovPath), { recursive: true });
+      fs.writeFileSync(lcovPath, lcov.content);
+      ok(`${pct}% (${hit}/${total} functions) → coverage/lcov.info`);
+    } else {
+      console.log("  (no coverage data in page)");
+    }
+  } catch (e) {
+    console.log(`  \x1b[33m⚠\x1b[0m coverage: ${e.message}`);
+  }
 
   await browser.close();
   report();

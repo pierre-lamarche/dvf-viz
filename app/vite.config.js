@@ -1,4 +1,5 @@
 import { defineConfig } from "vite";
+import { coveragePlugin } from "./coverage-plugin.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -34,7 +35,7 @@ function serveLocalData() {
 
 export default defineConfig({
   base: "./",
-  plugins: [serveLocalData()],
+  plugins: [coveragePlugin(), serveLocalData()],
   server: { port: 5173, host: true },
   build: { outDir: "dist", assetsInlineLimit: 0 },
 });

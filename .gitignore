@@ -7,6 +7,7 @@ out/
 # --- Node / frontend ---
 node_modules/
 app/dist/
+coverage/
 # Vendored DuckDB-WASM (41 MB) — copied from node_modules by `predev`/`prebuild`
 app/public/duckdb/
 # Local env files (e.g. VITE_CARTO_KEY for local dev) — never commit

@@ -34,3 +34,10 @@ jobs:
         env:
           E2E_URL: https://pierre-lamarche.github.io/dvf-viz/
         run: node tests/e2e.cjs
+      - name: Upload coverage to Codecov
+        if: always()
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: ./coverage/lcov.info
+          flags: e2e
