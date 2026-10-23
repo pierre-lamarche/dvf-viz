@@ -26,7 +26,7 @@ function writeLcov(cov) {
     collectFns(ast, fns);
     if (!fns.length) continue;
 
-    const lines = [`SF:src/${file}`];
+    const lines = [`SF:app/src/${file}`];
     let fileHit = 0;
     for (const fn of fns) {
       const key = `${file}:${fn.name}:${fn.line}`;
