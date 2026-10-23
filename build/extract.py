@@ -45,10 +45,11 @@ def extract(con, dept):
     # ---- parcel geojson (simplified in 2154, reprojected to 4326) ----
     q = ("SELECT l_idpar[1] AS idpar, coddep, {yc} AS annee, "
          "round(valeurfonc) AS prix, codtypbien AS typ, "
+         "idmutation AS mid, round(ST_Area(geompar)) AS area, "
          "ST_AsGeoJSON(ST_Transform(ST_SimplifyPreserveTopology(geompar, {tol}), "
          "'EPSG:2154','EPSG:4326')) AS g FROM t").format(yc=YEAR, tol=SIMPLIFY_TOL)
     feats, nulls = [], 0
-    for idpar, coddep, annee, prix, typ, g in con.execute(q).fetchall():
+    for idpar, coddep, annee, prix, typ, mid, area, g in con.execute(q).fetchall():
         if g is None:
             nulls += 1; continue
         feats.append({
@@ -59,6 +60,8 @@ def extract(con, dept):
                 "annees": int(annee) if annee is not None else None,
                 "prix": int(prix) if prix is not None else None,
                 "type": typ,
+                "mid": int(mid),
+                "area": int(area) if area is not None else None,
             },
             "geometry": json.loads(g),
         })

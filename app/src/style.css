@@ -33,6 +33,11 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 #panel-tx table { width: 100%; border-collapse: collapse; font-size: 12px; }
 #panel-tx th, #panel-tx td { text-align: left; padding: 4px 6px; border-bottom: 1px solid #eee; }
 #panel-tx th { color: #777; font-weight: 600; }
+#panel-tx .hint { color: #888; font-size: 11px; font-style: italic; margin: 8px 0 4px; }
+#panel-tx tbody tr { cursor: pointer; }
+#panel-tx tbody tr:hover { background: #f0f4ff; }
+#panel-tx tbody tr.active { background: #fde8ea; }
+#panel-tx tbody tr.active td { color: #b23a48; font-weight: 600; }
 .muted { color: #888; font-size: 13px; }
 .err { color: #c0392b; font-size: 13px; }
 

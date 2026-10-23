@@ -48,10 +48,10 @@ export async function queryTx(coddep, idpar) {
   await ensureDept(coddep);
   if (!/^[0-9A-Za-z]+$/.test(String(idpar))) throw new Error("parcel id invalide");
   const table = await conn.query(
-    `SELECT strftime(datemut, '%Y-%m-%d') AS datemut, annee, prix, type, surface ` +
+    `SELECT idmutation AS mid, strftime(datemut, '%Y-%m-%d') AS datemut, annee, prix, type, surface ` +
       `FROM tx WHERE idpar = '${idpar}' ORDER BY datemut`,
   );
-  const cols = ["datemut", "annee", "prix", "type", "surface"];
+  const cols = ["mid", "datemut", "annee", "prix", "type", "surface"];
   const rows = [];
   for (let i = 0; i < table.numRows; i++) {
     const r = {};

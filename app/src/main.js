@@ -87,17 +87,29 @@ map.on("load", async () => {
   });
 
   document.getElementById("panel-close").addEventListener("click", clearSelection);
+  panelTx.addEventListener("click", (e) => {
+    const tr = e.target.closest("tr[data-mid]");
+    if (!tr || busy) return;
+    clearActiveRow();
+    tr.classList.add("active");
+    selectByMid(Number(tr.dataset.mid), currentIdpar, true);
+  });
 });
 
 let busy = false;
+let currentIdpar = null;
 
 async function onParcelClick(e) {
-  const f = e.features && e.features[0];
-  if (!f || busy) return;
-  const { idpar, coddep, prix } = f.properties;
-  map.setFilter("parcels-selected", ["==", ["get", "idpar"], idpar]);
+  const feats = e.features || [];
+  if (!feats.length || busy) return;
+  // Overlapping features at the click point: select the SMALLEST parcel.
+  const f = feats.reduce((a, b) =>
+    Number(b.properties.area) < Number(a.properties.area) ? b : a);
+  const { idpar, coddep, prix, area } = f.properties;
+  currentIdpar = idpar;
+  selectByMid(f.properties.mid, idpar, false);
   panelTitle.textContent = `Parcelle ${idpar}`;
-  panelMeta.innerHTML = metaHtml({ coddep, prix });
+  panelMeta.innerHTML = metaHtml({ coddep, prix, area });
   panelTx.innerHTML = '<p class="muted">Chargement des mutations…</p>';
   panelEl.classList.remove("hidden");
 
@@ -112,25 +124,60 @@ async function onParcelClick(e) {
   }
 }
 
+// Highlight the single MVT feature for `mid`; fit the camera if `doZoom`.
+// Map-click (doZoom=false): the clicked feature should be rendered; if it isn't,
+// it was dropped by tippecanoe, so fall back to highlighting all of `idpar`.
+// Row-click (doZoom=true): the parcel may be off-viewport; keep the `mid` filter
+// (it highlights once navigated into view) rather than over-highlighting `idpar`.
+function selectByMid(mid, idpar, doZoom) {
+  map.setFilter("parcels-selected", ["==", ["get", "mid"], mid]);
+  const feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+  if (feats.length) {
+    if (doZoom) fitToFeatures(feats);
+  } else if (!doZoom) {
+    map.setFilter("parcels-selected", ["==", ["get", "idpar"], idpar]);
+  }
+}
+
+function fitToFeatures(feats) {
+  const b = new maplibregl.LngLatBounds();
+  for (const f of feats) extendBounds(b, f.geometry);
+  if (b.isEmpty()) return;
+  map.fitBounds(b, { padding: 80, duration: 500, maxZoom: 17 });
+}
+
+function extendBounds(b, g) {
+  const walk = (c) => (typeof c[0] === "number" ? b.extend([c[0], c[1]]) : c.forEach(walk));
+  if (g.type === "Point") b.extend([g.coordinates[0], g.coordinates[1]]);
+  else walk(g.coordinates);
+}
+
+function clearActiveRow() {
+  panelTx.querySelectorAll("tr.active").forEach((tr) => tr.classList.remove("active"));
+}
+
 function clearSelection() {
   map.setFilter("parcels-selected", ["==", ["get", "idpar"], ""]);
   panelEl.classList.add("hidden");
+  currentIdpar = null;
 }
 
-function metaHtml({ coddep, prix }) {
+function metaHtml({ coddep, prix, area }) {
   let h = `<div>Department : <b>${escapeHtml(String(coddep))}</b></div>`;
   if (prix != null) h += `<div>Prix (dernier) : <b>${fmt(prix)} €</b></div>`;
+  if (area != null) h += `<div>Surface : <b>${fmt(area)} m²</b></div>`;
   return h;
 }
 
 function txTable(rows) {
   let h =
+    '<p class="hint">Cliquez sur une mutation pour sélectionner sa parcelle réelle.</p>' +
     '<table><thead><tr><th>Date</th><th>Prix</th><th>Type</th><th>Surface</th></tr></thead><tbody>';
   for (const r of rows) {
     let d = r.datemut;
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
-    h += `<tr><td>${escapeHtml(String(d))}</td>`;
+    h += `<tr data-mid="${r.mid}"><td>${escapeHtml(String(d))}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;
     h += `<td>${r.surface != null ? fmt(r.surface) + " m²" : "—"}</td></tr>`;
