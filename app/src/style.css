@@ -38,6 +38,7 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 #panel-tx tbody tr:hover { background: #f0f4ff; }
 #panel-tx tbody tr.active { background: #fde8ea; }
 #panel-tx tbody tr.active td { color: #b23a48; font-weight: 600; }
+.other-ids { font-size: 10px; color: #999; margin-top: 2px; word-break: break-all; }
 .muted { color: #888; font-size: 13px; }
 .err { color: #c0392b; font-size: 13px; }
 

@@ -116,7 +116,7 @@ async function onParcelClick(e) {
   busy = true;
   try {
     const rows = await queryTx(coddep, idpar);
-    panelTx.innerHTML = rows.length ? txTable(rows) : '<p class="muted">Aucune mutation trouvée.</p>';
+    panelTx.innerHTML = rows.length ? txTable(rows, idpar) : '<p class="muted">Aucune mutation trouvée.</p>';
   } catch (err) {
     panelTx.innerHTML = `<p class="err">Erreur : ${escapeHtml(err.message)}</p>`;
   } finally {
@@ -173,7 +173,7 @@ function metaHtml({ coddep, prix, area }) {
   return h;
 }
 
-function txTable(rows) {
+function txTable(rows, currentIdpar) {
   let h =
     '<p class="hint">Cliquez sur une mutation pour sélectionner sa parcelle réelle.</p>' +
     '<table><thead><tr><th>Date</th><th>Prix</th><th>Type</th><th>Surface</th></tr></thead><tbody>';
@@ -181,7 +181,12 @@ function txTable(rows) {
     let d = r.datemut;
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
-    h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}</td>`;
+    let otherIds = "";
+    if (r.ids_str) {
+      const ids = r.ids_str.split(" ").filter(id => id !== currentIdpar);
+      if (ids.length) otherIds = `<div class="other-ids">${ids.map(id => escapeHtml(id)).join(", ")}</div>`;
+    }
+    h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}${otherIds}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;
     h += `<td>${r.surface != null ? fmt(r.surface) + " m²" : "—"}</td></tr>`;
