@@ -1,7 +1,7 @@
 # DVF+ · Parcelles & mutations foncières
 
 Carte interactive des **parcelles françaises ayant connu au moins une mutation foncière**
-(ventes immobilières), d'après le jeu de données **DVF+** (*Droits des Valeurs Foncières plus*)
+(ventes immobilières), d'après le jeu de données **DVF+** (*Demandes des Valeurs Foncières plus*)
 publié par le Céréma.
 
 Cliquez sur une parcelle : elle se surligne et un panneau affiche l'historique de ses mutations
