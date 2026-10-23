@@ -30,8 +30,9 @@ function writeLcov(cov) {
     let fileHit = 0;
     for (const fn of fns) {
       const key = `${file}:${fn.name}:${fn.line}`;
-      lines.push(`FN:${fn.line},${fn.name}`);
       const hit = hitSet.has(key) ? 1 : 0;
+      lines.push(`DA:${fn.line},${hit}`);
+      lines.push(`FN:${fn.line},${fn.name}`);
       lines.push(`FNDA:${hit},${fn.name}`);
       if (hit) fileHit++;
     }
