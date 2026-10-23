@@ -92,7 +92,7 @@ map.on("load", async () => {
     if (!tr || busy) return;
     clearActiveRow();
     tr.classList.add("active");
-    selectByMid(Number(tr.dataset.mid), currentIdpar, true);
+    selectByMid(Number(tr.dataset.mid), tr.dataset.pid || currentIdpar, true);
   });
 });
 
@@ -124,19 +124,19 @@ async function onParcelClick(e) {
   }
 }
 
-// Highlight the single MVT feature for `mid`; fit the camera if `doZoom`.
-// Map-click (doZoom=false): the clicked feature should be rendered; if it isn't,
-// it was dropped by tippecanoe, so fall back to highlighting all of `idpar`.
-// Row-click (doZoom=true): the parcel may be off-viewport; keep the `mid` filter
-// (it highlights once navigated into view) rather than over-highlighting `idpar`.
+// Highlight the MVT feature for `mid`; fit the camera if `doZoom`.
+// setFilter is async (repaints next frame), so query after a short delay.
+// If no feature matches `mid` (dropped by tippecanoe), fall back to `idpar`.
 function selectByMid(mid, idpar, doZoom) {
   map.setFilter("parcels-selected", ["==", ["get", "mid"], mid]);
-  const feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
-  if (feats.length) {
-    if (doZoom) fitToFeatures(feats);
-  } else if (!doZoom) {
-    map.setFilter("parcels-selected", ["==", ["get", "idpar"], idpar]);
-  }
+  setTimeout(() => {
+    let feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+    if (!feats.length) {
+      map.setFilter("parcels-selected", ["==", ["get", "idpar"], idpar]);
+      feats = map.queryRenderedFeatures(null, { layers: ["parcels-selected"] });
+    }
+    if (doZoom && feats.length) fitToFeatures(feats);
+  }, 100);
 }
 
 function fitToFeatures(feats) {
@@ -177,7 +177,7 @@ function txTable(rows) {
     let d = r.datemut;
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
-    h += `<tr data-mid="${r.mid}"><td>${escapeHtml(String(d))}</td>`;
+    h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;
     h += `<td>${r.surface != null ? fmt(r.surface) + " m²" : "—"}</td></tr>`;
