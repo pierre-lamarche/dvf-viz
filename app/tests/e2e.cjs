@@ -443,6 +443,59 @@ async function main() {
     fail("other dept", e.message);
   }
 
+  // ── 11. Recherche d'adresse ─────────────────────────────────────────
+  section("11. Recherche d'adresse (geocoding)");
+  try {
+    await page.fill("#search", "10 rue de Rivoli Paris");
+    await page.waitForFunction(
+      () => {
+        const r = document.getElementById("search-results");
+        return !r.classList.contains("hidden") && r.querySelectorAll(".item[data-i]").length > 0;
+      },
+      { timeout: 10000 },
+    );
+    const items = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("#search-results .item[data-i] .label")).map(el => el.textContent));
+    ok(`geocoding: ${items.length} résultats (${items[0]})`);
+  } catch (e) {
+    fail("search results", e.message);
+  }
+
+  // ── 12. Sélection → flyTo + marker ──────────────────────────────────
+  section("12. Sélection d'adresse → flyTo + marker");
+  try {
+    await page.click('#search-results .item[data-i="0"]');
+    await page.waitForTimeout(2000);
+    const center = await page.evaluate(() => window.__map.getCenter());
+    const zoom = await page.evaluate(() => window.__map.getZoom());
+    const hasMarker = await page.evaluate(() =>
+      document.querySelectorAll(".maplibregl-marker").length > 0);
+    if (zoom >= 15 && Math.abs(center.lng - 2.36) < 0.1 && Math.abs(center.lat - 48.86) < 0.1)
+      ok(`flyTo (${center.lng.toFixed(3)}, ${center.lat.toFixed(3)}) z${zoom.toFixed(0)}, marker=${hasMarker}`);
+    else
+      fail("flyTo", `center=(${center.lng}, ${center.lat}) z${zoom}, marker=${hasMarker}`);
+  } catch (e) {
+    fail("search select", e.message);
+  }
+
+  // ── 13. Escape ferme le dropdown ────────────────────────────────────
+  section("13. Recherche — Escape ferme le dropdown");
+  try {
+    await page.fill("#search", "Bordeaux");
+    await page.waitForFunction(
+      () => !document.getElementById("search-results").classList.contains("hidden"),
+      { timeout: 10000 },
+    );
+    await page.keyboard.press("Escape");
+    await page.waitForFunction(
+      () => document.getElementById("search-results").classList.contains("hidden"),
+      { timeout: 3000 },
+    );
+    ok("Escape ferme le dropdown");
+  } catch (e) {
+    fail("search escape", e.message);
+  }
+
   // ── Errors ─────────────────────────────────────────────────────────
   section("Erreurs page");
   const real = errors.filter(e => !/404|Failed to load resource|ERR_ABORTED|basemaps\.cartocdn/i.test(e));
