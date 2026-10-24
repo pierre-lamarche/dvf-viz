@@ -198,6 +198,15 @@ function firstCommune(rows) {
   return "";
 }
 
+// Street only: drop the ", CP COMMUNE" suffix (the commune is shown separately
+// in the panel header). Used for the per-mutation row display only — the data
+// keeps the full address, which still feeds the commune-name fallback.
+function streetOnly(adresse) {
+  const s = String(adresse || "").trim();
+  const m = s.match(/^(.*),\s*\d{5}\b[\s\S]*$/);
+  return (m ? m[1] : s).trim();
+}
+
 // ── INSEE geo names (commune / département), adresse label as fallback ──
 // The browser calls the INSEE metadonnées API directly on click. Names are
 // cached for the session (successes) / 60 s (misses) to bound request volume.
@@ -251,7 +260,8 @@ function txTable(rows, currentIdpar) {
     let d = r.datemut;
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
-    let sub = r.adresse ? `<div class="adresse">${escapeHtml(r.adresse)}</div>` : "";
+    const street = streetOnly(r.adresse);
+    let sub = street ? `<div class="adresse">${escapeHtml(street)}</div>` : "";
     h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}${sub}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;
