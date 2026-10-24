@@ -10,7 +10,7 @@ Env:   PARCELS_DIR (default out/parcels), TX_DIR (default out/tx)
 """
 import duckdb, json, os, sys, time
 
-BASE = "https://minio.lab.sspcloud.fr/pierrelamarche/dvf/dvfplus/202610"
+BASE = "https://minio.lab.sspcloud.fr/pierrelamarche/dvf/dvfplus/202610/parquet"
 YEAR = "annee" + "mut"  # anneemut
 SIMPLIFY_TOL = 2.0
 LIMIT = None
