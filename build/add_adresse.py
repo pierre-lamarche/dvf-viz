@@ -31,15 +31,32 @@ def main():
     con.execute(f"""
         CREATE TEMP TABLE addr AS
         SELECT idmutation,
-               (CASE WHEN novoie IS NOT NULL AND novoie != ''
-                     THEN novoie || ' '
-                     ELSE '' END) || typvoie || ' ' || voie || ', ' ||
-               codepostal || ' ' || commune AS adresse
+          CASE WHEN street = '' THEN NULL
+               ELSE CASE WHEN city = '' THEN street
+                         ELSE street || ', ' || city END
+          END AS adresse
         FROM (
+          SELECT idmutation,
+            TRIM(
+              (CASE WHEN lower(COALESCE(novoie, '')) IN ('', 'null')
+                    THEN '' ELSE novoie || ' ' END) ||
+              (CASE WHEN lower(COALESCE(typvoie, '')) IN ('', 'null')
+                    THEN '' ELSE typvoie || ' ' END) ||
+              (CASE WHEN lower(COALESCE(voie, '')) IN ('', 'null')
+                    THEN '' ELSE voie END)
+            ) AS street,
+            TRIM(
+              (CASE WHEN lower(COALESCE(codepostal, '')) IN ('', 'null')
+                    THEN '' ELSE codepostal || ' ' END) ||
+              (CASE WHEN lower(COALESCE(commune, '')) IN ('', 'null')
+                    THEN '' ELSE commune END)
+            ) AS city
+          FROM (
             SELECT *, ROW_NUMBER() OVER (PARTITION BY idmutation ORDER BY idadresse) AS rn
             FROM read_parquet('{ADRESSE_URL}')
+          )
+          WHERE rn = 1
         )
-        WHERE rn = 1
     """)
     n = con.execute("SELECT count(*) FROM addr").fetchone()[0]
     print(f"  {n:,} unique addresses ({time.time()-t0:.0f}s)", flush=True)
