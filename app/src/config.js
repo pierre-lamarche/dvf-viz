@@ -10,7 +10,11 @@ const origin = typeof window !== "undefined" ? window.location.origin : "";
 const BASE = DATA_BASE || origin;
 
 export const TILE_URL = `${BASE}/tiles/{z}/{x}/{y}.mvt`;
-export const TX_URL = (dept) => `${BASE}/tx/dept-${dept}.parquet`;
+// Shards are stored on MinIO with lowercase dept codes (dept-2a.parquet for
+// Corse), but `coddep` from the tiles is the INSEE-official uppercase (2A/2B).
+// S3/MinIO keys are case-sensitive, so lowercase here to match the files. Only
+// affects the letter-suffix depts (2a/2b); numeric depts are unchanged.
+export const TX_URL = (dept) => `${BASE}/tx/dept-${String(dept).toLowerCase()}.parquet`;
 
 // The DuckDB-WASM bundle is part of the app itself (served from /duckdb).
 export const DUCKDB_BASE = "duckdb";
