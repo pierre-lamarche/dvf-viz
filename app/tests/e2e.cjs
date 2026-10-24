@@ -389,18 +389,19 @@ async function main() {
   }
 
   // ── 8. Métadonnées du panneau ───────────────────────────────────────
-  section("8. Métadonnées du panneau (département, prix)");
+  section("8. Métadonnées du panneau (commune, prix)");
   try {
     const meta = await page.evaluate(() => {
       const el = document.getElementById("panel-meta");
-      const dep = el.innerHTML.match(/Department : <b>(\d+)<\/b>/);
+      const comm = (el.innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
+      const code = (comm.match(/\d{5}/) || [])[0] || null;
       const prix = el.innerHTML.match(/Prix \(dernier\) : <b>([\d\s]+) €<\/b>/);
-      return { dep: dep ? dep[1] : null, prix: prix ? prix[1].replace(/\s/g, "") : null };
+      return { code, prix: prix ? prix[1].replace(/\s/g, "") : null };
     });
-    if (meta.dep && meta.prix)
-      ok(`département=${meta.dep}, prix=${meta.prix} €`);
+    if (meta.code && meta.prix)
+      ok(`commune=${meta.code}, prix=${meta.prix} €`);
     else
-      fail("panel metadata", `missing fields: dep=${meta.dep}, prix=${meta.prix}`);
+      fail("panel metadata", `missing fields: code=${meta.code}, prix=${meta.prix}`);
   } catch (e) {
     fail("panel metadata", e.message);
   }
@@ -437,14 +438,14 @@ async function main() {
 
     const title = await page.evaluate(() => document.getElementById("panel-title").textContent);
     const rows = await page.evaluate(() => document.querySelectorAll("#panel-tx tr[data-mid]").length);
-    const dep = await page.evaluate(() => {
-      const m = document.getElementById("panel-meta").innerHTML.match(/Department : <b>(\d+)<\/b>/);
-      return m ? m[1] : null;
+    const code = await page.evaluate(() => {
+      const v = (document.getElementById("panel-meta").innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
+      return (v.match(/\d{5}/) || [])[0] || null;
     });
-    if (dep === "69" && rows > 0)
-      ok(`${title}: ${rows} mutations (dépt 69)`);
+    if (code && code.startsWith("69") && rows > 0)
+      ok(`${title}: ${rows} mutations (commune ${code})`);
     else
-      fail("other dept", `dep=${dep}, rows=${rows} (expected dept 69 with mutations)`);
+      fail("other dept", `code=${code}, rows=${rows} (expected commune in dept 69 with mutations)`);
   } catch (e) {
     fail("other dept", e.message);
   }

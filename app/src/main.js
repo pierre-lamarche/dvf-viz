@@ -108,10 +108,11 @@ async function onParcelClick(e) {
   const f = feats.reduce((a, b) =>
     Number(b.properties.area) < Number(a.properties.area) ? b : a);
   const { idpar, coddep, prix, area } = f.properties;
+  const codcom = String(idpar).slice(0, 5);
   currentIdpar = idpar;
   selectByMid(f.properties.mid, idpar, false);
   panelTitle.textContent = `Parcelle ${idpar}`;
-  panelMeta.innerHTML = metaHtml({ coddep, prix, area });
+  panelMeta.innerHTML = metaHtml({ codcom, libcom: "", prix, area });
   panelTx.innerHTML = '<p class="muted">Chargement des mutations…</p>';
   panelEl.classList.remove("hidden");
 
@@ -119,6 +120,7 @@ async function onParcelClick(e) {
   try {
     const rows = await queryTx(coddep, idpar);
     panelTx.innerHTML = rows.length ? txTable(rows, idpar) : '<p class="muted">Aucune mutation trouvée.</p>';
+    panelMeta.innerHTML = metaHtml({ codcom, libcom: firstCommune(rows), prix, area });
   } catch (err) {
     panelTx.innerHTML = `<p class="err">Erreur : ${escapeHtml(err.message)}</p>`;
   } finally {
@@ -168,11 +170,27 @@ function clearSelection() {
   currentIdpar = null;
 }
 
-function metaHtml({ coddep, prix, area }) {
-  let h = `<div>Department : <b>${escapeHtml(String(coddep))}</b></div>`;
+function metaHtml({ codcom, libcom, prix, area }) {
+  const comm = libcom ? `${libcom} (${codcom})` : `… (${codcom})`;
+  let h = `<div>Commune : <b>${escapeHtml(comm)}</b></div>`;
   if (prix != null) h += `<div>Prix (dernier) : <b>${fmt(prix)} €</b></div>`;
   if (area != null) h += `<div>Surface : <b>${fmt(area)} m²</b></div>`;
   return h;
+}
+
+// Commune name, derived from the parcel's tx address ("street, CP COMMUNE").
+// The INSEE code is the first 5 chars of the cadastre parcel id (dept + commune).
+function communeFromAdresse(adresse) {
+  if (!adresse) return "";
+  const m = String(adresse).match(/^.*\b(\d{5})\s+(.+)$/);
+  return m ? m[2].trim() : "";
+}
+function firstCommune(rows) {
+  for (const r of rows) {
+    const c = communeFromAdresse(r.adresse);
+    if (c) return c;
+  }
+  return "";
 }
 
 function txTable(rows, currentIdpar) {
