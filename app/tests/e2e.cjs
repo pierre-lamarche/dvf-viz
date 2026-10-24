@@ -172,7 +172,13 @@ async function main() {
     await waitForPanel(page);
     const title = await page.evaluate(() => document.getElementById("panel-title").textContent);
     const rows = await page.evaluate(() => document.querySelectorAll("#panel-tx tr[data-mid]").length);
-    if (rows > 0) ok(`${title}: ${rows} mutations`);
+    const addrs = await page.evaluate(() =>
+      Array.from(document.querySelectorAll("#panel-tx .adresse")).map(el => el.textContent));
+    if (rows > 0) {
+      const addrOk = addrs.length > 0;
+      ok(`${title}: ${rows} mutations, ${addrs.length} adresses${addrOk ? ` (${addrs[0]})` : ""}`);
+      if (!addrOk) fail("address display", "no .adresse elements found in panel");
+    }
     else fail("panel empty", "no mutation rows");
   } catch (e) {
     fail("click → panel", e.message);

@@ -183,12 +183,8 @@ function txTable(rows, currentIdpar) {
     let d = r.datemut;
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
-    let otherIds = "";
-    if (r.ids_str) {
-      const ids = r.ids_str.split(" ").filter(id => id !== currentIdpar);
-      if (ids.length) otherIds = `<div class="other-ids">${ids.map(id => escapeHtml(id)).join(", ")}</div>`;
-    }
-    h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}${otherIds}</td>`;
+    let sub = r.adresse ? `<div class="adresse">${escapeHtml(r.adresse)}</div>` : "";
+    h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}${sub}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;
     h += `<td>${r.surface != null ? fmt(r.surface) + " m²" : "—"}</td></tr>`;
