@@ -118,9 +118,13 @@ async function onParcelClick(e) {
 
   busy = true;
   try {
-    const rows = await queryTx(coddep, idpar);
+    const [rows, deptName, inseeCommune] = await Promise.all([
+      queryTx(coddep, idpar),
+      getDeptName(coddep),
+      getCommuneName(codcom),
+    ]);
     panelTx.innerHTML = rows.length ? txTable(rows, idpar) : '<p class="muted">Aucune mutation trouvée.</p>';
-    panelMeta.innerHTML = metaHtml({ codcom, libcom: firstCommune(rows), prix, area });
+    panelMeta.innerHTML = metaHtml({ codcom, libcom: inseeCommune || firstCommune(rows), deptName: deptName || "", prix, area });
   } catch (err) {
     panelTx.innerHTML = `<p class="err">Erreur : ${escapeHtml(err.message)}</p>`;
   } finally {
@@ -170,8 +174,9 @@ function clearSelection() {
   currentIdpar = null;
 }
 
-function metaHtml({ codcom, libcom, prix, area }) {
-  const comm = libcom ? `${libcom} (${codcom})` : `… (${codcom})`;
+function metaHtml({ codcom, libcom, deptName, prix, area }) {
+  const dept = deptName ? `, ${deptName}` : "";
+  const comm = libcom ? `${libcom} (${codcom})${dept}` : `… (${codcom})${dept}`;
   let h = `<div>Commune : <b>${escapeHtml(comm)}</b></div>`;
   if (prix != null) h += `<div>Prix (dernier) : <b>${fmt(prix)} €</b></div>`;
   if (area != null) h += `<div>Surface : <b>${fmt(area)} m²</b></div>`;
@@ -191,6 +196,51 @@ function firstCommune(rows) {
     if (c) return c;
   }
   return "";
+}
+
+// ── INSEE geo names (commune / département), adresse label as fallback ──
+// The browser calls the INSEE metadonnées API directly on click. Names are
+// cached for the session (successes) / 60 s (misses) to bound request volume.
+// A null result means the caller falls back to the address-derived label.
+const INSEE = "https://api.insee.fr/metadonnees/V2/geo";
+const inseeCache = new Map(); // kind+code -> { name, ts, ok }
+const INSEE_MISS_TTL = 60_000;
+
+function sleep(ms) {
+  return new Promise((res) => setTimeout(res, ms));
+}
+
+async function inseeName(url, retries = 3) {
+  for (let i = 0; i < retries; i++) {
+    try {
+      const r = await fetch(url);
+      if (r.status === 404) return null; // absent (arrondissement / deactivated code)
+      if (!r.ok) throw new Error("HTTP " + r.status);
+      const j = await r.json();
+      return j.intitule || null;
+    } catch (e) {
+      if (i < retries - 1) await sleep(250 * (i + 1));
+    }
+  }
+  return null;
+}
+
+function inseeCached(kind, code) {
+  const key = kind + "/" + code;
+  const now = Date.now();
+  const hit = inseeCache.get(key);
+  if (hit && (hit.ok || now - hit.ts < INSEE_MISS_TTL)) return Promise.resolve(hit.name);
+  return inseeName(`${INSEE}/${kind}/${code}`).then((name) => {
+    inseeCache.set(key, { name, ts: now, ok: !!name });
+    return name;
+  });
+}
+
+function getCommuneName(code) {
+  return code ? inseeCached("commune", code) : Promise.resolve(null);
+}
+function getDeptName(code) {
+  return code ? inseeCached("departement", code) : Promise.resolve(null);
 }
 
 function txTable(rows, currentIdpar) {

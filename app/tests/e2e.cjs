@@ -389,19 +389,24 @@ async function main() {
   }
 
   // ── 8. Métadonnées du panneau ───────────────────────────────────────
-  section("8. Métadonnées du panneau (commune, prix)");
+  section("8. Métadonnées du panneau (commune, département, prix)");
   try {
     const meta = await page.evaluate(() => {
       const el = document.getElementById("panel-meta");
       const comm = (el.innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
       const code = (comm.match(/\d{5}/) || [])[0] || null;
+      const dept = (comm.match(/\d{5}\)\s*,\s*(.+)$/) || [])[1] || null;
       const prix = el.innerHTML.match(/Prix \(dernier\) : <b>([\d\s]+) €<\/b>/);
-      return { code, prix: prix ? prix[1].replace(/\s/g, "") : null };
+      return { code, dept, prix: prix ? prix[1].replace(/\s/g, "") : null };
     });
     if (meta.code && meta.prix)
       ok(`commune=${meta.code}, prix=${meta.prix} €`);
     else
       fail("panel metadata", `missing fields: code=${meta.code}, prix=${meta.prix}`);
+    if (meta.dept === "Paris")
+      ok(`département=${meta.dept}`);
+    else
+      fail("département", `expected "Paris", got ${meta.dept}`);
   } catch (e) {
     fail("panel metadata", e.message);
   }
@@ -438,14 +443,21 @@ async function main() {
 
     const title = await page.evaluate(() => document.getElementById("panel-title").textContent);
     const rows = await page.evaluate(() => document.querySelectorAll("#panel-tx tr[data-mid]").length);
-    const code = await page.evaluate(() => {
+    const { code, dept } = await page.evaluate(() => {
       const v = (document.getElementById("panel-meta").innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
-      return (v.match(/\d{5}/) || [])[0] || null;
+      return {
+        code: (v.match(/\d{5}/) || [])[0] || null,
+        dept: (v.match(/\d{5}\)\s*,\s*(.+)$/) || [])[1] || null,
+      };
     });
     if (code && code.startsWith("69") && rows > 0)
       ok(`${title}: ${rows} mutations (commune ${code})`);
     else
       fail("other dept", `code=${code}, rows=${rows} (expected commune in dept 69 with mutations)`);
+    if (dept === "Rhône")
+      ok(`département=${dept}`);
+    else
+      fail("département", `expected "Rhône", got ${dept}`);
   } catch (e) {
     fail("other dept", e.message);
   }
