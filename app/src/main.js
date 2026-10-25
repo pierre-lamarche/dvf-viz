@@ -282,7 +282,7 @@ async function geocodeAddress(adresse) {
 
 function txTable(rows, currentIdpar, center) {
   const sv = center
-    ? `https://www.google.com/maps/@${center.lat},${center.lng},3a,77y,0h,0t/data=!3m6!4b1!5m1!1e1`
+    ? `https://www.google.com/maps/@?api=1&map_action=pano&viewpoint=${center.lat},${center.lng}&utm_source=dvf-viz&utm_campaign=street_view`
     : "";
   let h =
     '<p class="hint">Cliquez sur une mutation pour sélectionner sa parcelle réelle.</p>' +
