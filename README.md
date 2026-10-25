@@ -147,7 +147,7 @@ Prérequis GitHub (une seule fois) : *Settings → Pages → Source : GitHub Act
 ## Données & licences
 
 - **Code** : MIT (voir `LICENSE`).
-- **Données DVF+** : © État français, sous **Licence Ouverte** —
-  [data.economie.gouv.fr](https://data.economie.gouv.fr/). Ce projet ne redistribue pas les
+- **Données DVF+** : © Céréma, sous [**Licence Ouverte version 2**]'https://www.etalab.gouv.fr/wp-content/uploads/2017/04/ETALAB-Licence-Ouverte-v2.0.pdf) —
+  [Datafoncier](https://datafoncier.cerema.fr/donnees/autres-donnees-foncieres/dvfplus-open-data). Ce projet ne redistribue pas les
   données brutes (elles restent sur le bucket MinIO).
 - **Fond de carte** : [CARTO Light](https://carto.com/), avec attribution.
