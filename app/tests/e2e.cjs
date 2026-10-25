@@ -134,6 +134,29 @@ async function waitForPanel(page, timeout = 30000) {
   );
 }
 
+// Département name from the open panel's Commune line ("… (codcom), <dept>").
+// The suffix only appears when the live INSEE lookup succeeded, so a null result
+// means INSEE was unavailable for this panel → the caller skips the assertion.
+// Resolves as soon as the suffix is present (instant if already there); only
+// waits `timeout` when it's absent.
+async function readDept(page, timeout = 5000) {
+  try {
+    await page.waitForFunction(
+      () => {
+        const comm = (document.getElementById("panel-meta").innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
+        return /\d{5}\)\s*,\s*\S/.test(comm);
+      },
+      { timeout },
+    );
+  } catch {
+    return null;
+  }
+  return await page.evaluate(() => {
+    const comm = (document.getElementById("panel-meta").innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
+    return (comm.match(/\d{5}\)\s*,\s*(.+)$/) || [])[1] || null;
+  });
+}
+
 async function main() {
   const browser = await chromium.launch();
   const page = await browser.newPage({ viewport: { width: 1280, height: 800 } });
@@ -404,18 +427,17 @@ async function main() {
       const el = document.getElementById("panel-meta");
       const comm = (el.innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
       const code = (comm.match(/\d{5}/) || [])[0] || null;
-      const dept = (comm.match(/\d{5}\)\s*,\s*(.+)$/) || [])[1] || null;
       const prix = el.innerHTML.match(/Prix \(dernier\) : <b>([\d\s]+) €<\/b>/);
-      return { code, dept, prix: prix ? prix[1].replace(/\s/g, "") : null };
+      return { code, prix: prix ? prix[1].replace(/\s/g, "") : null };
     });
     if (meta.code && meta.prix)
       ok(`commune=${meta.code}, prix=${meta.prix} €`);
     else
       fail("panel metadata", `missing fields: code=${meta.code}, prix=${meta.prix}`);
-    if (meta.dept === "Paris")
-      ok(`département=${meta.dept}`);
-    else
-      fail("département", `expected "Paris", got ${meta.dept}`);
+    const dept = await readDept(page);
+    if (dept === null) ok("département skipped (INSEE unavailable)");
+    else if (dept === "Paris") ok(`département=${dept}`);
+    else fail("département", `expected "Paris", got ${dept}`);
   } catch (e) {
     fail("panel metadata", e.message);
   }
@@ -452,21 +474,18 @@ async function main() {
 
     const title = await page.evaluate(() => document.getElementById("panel-title").textContent);
     const rows = await page.evaluate(() => document.querySelectorAll("#panel-tx tr[data-mid]").length);
-    const { code, dept } = await page.evaluate(() => {
+    const code = await page.evaluate(() => {
       const v = (document.getElementById("panel-meta").innerHTML.match(/Commune : <b>(.*?)<\/b>/) || [])[1] || "";
-      return {
-        code: (v.match(/\d{5}/) || [])[0] || null,
-        dept: (v.match(/\d{5}\)\s*,\s*(.+)$/) || [])[1] || null,
-      };
+      return (v.match(/\d{5}/) || [])[0] || null;
     });
     if (code && code.startsWith("69") && rows > 0)
       ok(`${title}: ${rows} mutations (commune ${code})`);
     else
       fail("other dept", `code=${code}, rows=${rows} (expected commune in dept 69 with mutations)`);
-    if (dept === "Rhône")
-      ok(`département=${dept}`);
-    else
-      fail("département", `expected "Rhône", got ${dept}`);
+    const dept = await readDept(page);
+    if (dept === null) ok("département skipped (INSEE unavailable)");
+    else if (dept === "Rhône") ok(`département=${dept}`);
+    else fail("département", `expected "Rhône", got ${dept}`);
   } catch (e) {
     fail("other dept", e.message);
   }
