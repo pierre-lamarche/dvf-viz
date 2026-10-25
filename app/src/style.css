@@ -58,6 +58,8 @@ html, body { margin: 0; height: 100%; font-family: -apple-system, BlinkMacSystem
 #panel-tx tbody tr.active { background: #fde8ea; }
 #panel-tx tbody tr.active td { color: #b23a48; font-weight: 600; }
 .adresse { font-size: 10px; color: #555; margin-top: 2px; }
+.adresse a { color: #2a5db0; text-decoration: none; }
+.adresse a:hover { text-decoration: underline; }
 .muted { color: #888; font-size: 13px; }
 .err { color: #c0392b; font-size: 13px; }
 

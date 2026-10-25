@@ -108,6 +108,7 @@ async function onParcelClick(e) {
   const f = feats.reduce((a, b) =>
     Number(b.properties.area) < Number(a.properties.area) ? b : a);
   const { idpar, coddep, prix, area } = f.properties;
+  const center = { lat: e.lngLat.lat, lng: e.lngLat.lng };
   const codcom = String(idpar).slice(0, 5);
   currentIdpar = idpar;
   selectByMid(f.properties.mid, idpar, false);
@@ -123,7 +124,7 @@ async function onParcelClick(e) {
       getDeptName(coddep),
       getCommuneName(codcom),
     ]);
-    panelTx.innerHTML = rows.length ? txTable(rows, idpar) : '<p class="muted">Aucune mutation trouvée.</p>';
+    panelTx.innerHTML = rows.length ? txTable(rows, idpar, center) : '<p class="muted">Aucune mutation trouvée.</p>';
     panelMeta.innerHTML = metaHtml({ codcom, libcom: inseeCommune || firstCommune(rows), deptName: deptName || "", prix, area });
   } catch (err) {
     panelTx.innerHTML = `<p class="err">Erreur : ${escapeHtml(err.message)}</p>`;
@@ -252,7 +253,10 @@ function getDeptName(code) {
   return code ? inseeCached("departement", code) : Promise.resolve(null);
 }
 
-function txTable(rows, currentIdpar) {
+function txTable(rows, currentIdpar, center) {
+  const sv = center
+    ? `https://www.google.com/maps/@${center.lat},${center.lng},3a,77y,0h,0t/data=!3m6!4b1!5m1!1e1`
+    : "";
   let h =
     '<p class="hint">Cliquez sur une mutation pour sélectionner sa parcelle réelle.</p>' +
     '<table><thead><tr><th>Date</th><th>Prix</th><th>Type</th><th>Surface</th></tr></thead><tbody>';
@@ -261,7 +265,12 @@ function txTable(rows, currentIdpar) {
     if (typeof d === "number") d = new Date(d).toISOString().slice(0, 10);
     else if (d instanceof Date) d = d.toISOString().slice(0, 10);
     const street = streetOnly(r.adresse);
-    let sub = street ? `<div class="adresse">${escapeHtml(street)}</div>` : "";
+    let sub = "";
+    if (street) {
+      sub = sv
+        ? `<div class="adresse"><a href="${sv}" target="_blank" rel="noopener noreferrer">${escapeHtml(street)}</a></div>`
+        : `<div class="adresse">${escapeHtml(street)}</div>`;
+    }
     h += `<tr data-mid="${r.mid}" data-pid="${r.pid}"><td>${escapeHtml(String(d))}${sub}</td>`;
     h += `<td>${r.prix != null ? fmt(r.prix) + " €" : "—"}</td>`;
     h += `<td>${escapeHtml(String(r.type ?? "—"))}</td>`;

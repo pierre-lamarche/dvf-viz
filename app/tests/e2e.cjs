@@ -178,6 +178,15 @@ async function main() {
       const addrOk = addrs.length > 0;
       ok(`${title}: ${rows} mutations, ${addrs.length} adresses${addrOk ? ` (${addrs[0]})` : ""}`);
       if (!addrOk) fail("address display", "no .adresse elements found in panel");
+      const svHref = await page.evaluate(() => {
+        const a = document.querySelector("#panel-tx .adresse a");
+        return a ? a.getAttribute("href") : null;
+      });
+      if (addrOk) {
+        if (!svHref || !svHref.startsWith("https://www.google.com/maps/@"))
+          fail("street view link", "address not linked to Street View: " + svHref);
+        else ok("adresse → lien Street View");
+      }
     }
     else fail("panel empty", "no mutation rows");
   } catch (e) {
