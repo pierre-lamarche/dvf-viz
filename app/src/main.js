@@ -108,7 +108,7 @@ async function onParcelClick(e) {
   const f = feats.reduce((a, b) =>
     Number(b.properties.area) < Number(a.properties.area) ? b : a);
   const { idpar, coddep, prix, area } = f.properties;
-  const center = { lat: e.lngLat.lat, lng: e.lngLat.lng };
+  const clickPoint = { lat: e.lngLat.lat, lng: e.lngLat.lng };
   const codcom = String(idpar).slice(0, 5);
   currentIdpar = idpar;
   selectByMid(f.properties.mid, idpar, false);
@@ -119,12 +119,15 @@ async function onParcelClick(e) {
 
   busy = true;
   try {
-    const [rows, deptName, inseeCommune] = await Promise.all([
-      queryTx(coddep, idpar),
+    const rows = await queryTx(coddep, idpar);
+    const firstAddr = (rows.find((r) => r.adresse) || {}).adresse || "";
+    const [deptName, inseeCommune, streetPoint] = await Promise.all([
       getDeptName(coddep),
       getCommuneName(codcom),
+      geocodeAddress(firstAddr),
     ]);
-    panelTx.innerHTML = rows.length ? txTable(rows, idpar, center) : '<p class="muted">Aucune mutation trouvée.</p>';
+    const svPoint = streetPoint || clickPoint;
+    panelTx.innerHTML = rows.length ? txTable(rows, idpar, svPoint) : '<p class="muted">Aucune mutation trouvée.</p>';
     panelMeta.innerHTML = metaHtml({ codcom, libcom: inseeCommune || firstCommune(rows), deptName: deptName || "", prix, area });
   } catch (err) {
     panelTx.innerHTML = `<p class="err">Erreur : ${escapeHtml(err.message)}</p>`;
@@ -251,6 +254,30 @@ function getCommuneName(code) {
 }
 function getDeptName(code) {
   return code ? inseeCached("departement", code) : Promise.resolve(null);
+}
+
+// Geocode a full address to its road frontage (better for Street View than the
+// raw parcel-centroid click point, which often has no SV coverage). Bounded by a
+// timeout and never rejects; returns null to fall back to the click point.
+async function geocodeAddress(adresse) {
+  const q = String(adresse || "").trim();
+  if (q.length < 3) return null;
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 6000);
+  try {
+    const res = await fetch(
+      `https://data.geopf.fr/geocodage/search?q=${encodeURIComponent(q)}&limit=1`,
+      { signal: ctrl.signal },
+    );
+    if (!res.ok) return null;
+    const data = await res.json();
+    const [lon, lat] = (data.features || [])[0]?.geometry?.coordinates || [];
+    return (lat != null && lon != null) ? { lat, lng: lon } : null;
+  } catch {
+    return null;
+  } finally {
+    clearTimeout(t);
+  }
 }
 
 function txTable(rows, currentIdpar, center) {
