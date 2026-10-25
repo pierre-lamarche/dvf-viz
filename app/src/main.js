@@ -88,6 +88,14 @@ map.on("load", async () => {
 
   document.getElementById("panel-close").addEventListener("click", clearSelection);
   panelTx.addEventListener("click", (e) => {
+    const a = e.target.closest("a");
+    if (a) {
+      // Address (Street View) link: force a new tab and skip row selection.
+      e.preventDefault();
+      e.stopPropagation();
+      window.open(a.href, "_blank", "noopener,noreferrer");
+      return;
+    }
     const tr = e.target.closest("tr[data-mid]");
     if (!tr || busy) return;
     clearActiveRow();
